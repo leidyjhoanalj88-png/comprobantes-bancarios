@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Comprobantes Bancarios</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f13; --card: #1a1a22; --border: #2a2a38; --text: #f0f0f5;
+  --muted: #8888aa; --pichincha-yellow: #f5c518; --guayaquil-pink: #e8106a;
+  --success: #22c55e; --accent: #6c63ff; --danger: #ff4d4d;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+#screen-login {
+  justify-content: center; padding: 20px;
+  background: radial-gradient(ellipse at 60% 20%, rgba(108,99,255,0.18) 0%, transparent 60%),
+              radial-gradient(ellipse at 10% 80%, rgba(232,16,106,0.12) 0%, transparent 50%), var(--bg);
+}
+.login-box { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 40px 36px; width: 100%; max-width: 380px; text-align: center; }
+.login-logo { width: 64px; height: 64px; background: linear-gradient(135deg, var(--accent), var(--guayaquil-pink)); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 1.8rem; }
+.login-title { font-family: 'Nunito', sans-serif; font-size: 1.5rem; font-weight: 900; background: linear-gradient(135deg, #f5c518, #e8106a, #6c63ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
+.login-subtitle { color: var(--muted); font-size: 0.82rem; margin-bottom: 28px; }
+.login-field { text-align: left; margin-bottom: 16px; }
+.login-field label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+.login-field input { width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.92rem; outline: none; transition: border-color 0.2s; }
+.login-field input:focus { border-color: var(--accent); }
+.pin-label { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; font-weight: 500; }
+.pin-display { display: flex; justify-content: center; gap: 10px; margin: 8px 0 18px; }
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); background: transparent; transition: all 0.2s; }
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+.pin-key { padding: 14px 8px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: all 0.15s; text-align: center; }
+.pin-key:hover { background: rgba(108,99,255,0.15); border-color: var(--accent); }
+.pin-key:active { transform: scale(0.95); }
+.pin-key.del { color: var(--muted); font-size: 0.85rem; }
+.pin-key.enter { background: var(--accent); border-color: var(--accent); color: white; }
+.pin-key.enter:hover { background: #5a52e0; }
+.login-error { color: var(--danger); font-size: 0.8rem; margin-bottom: 8px; min-height: 20px; font-weight: 600; }
+.navbar { width: 100%; background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.nav-brand { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1rem; background: linear-gradient(135deg, #f5c518, #e8106a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.nav-user { display: flex; align-items: center; gap: 10px; }
+.nav-badge { background: rgba(108,99,255,0.2); border: 1px solid rgba(108,99,255,0.4); color: #a89eff; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; font-family: 'Nunito', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; }
+.nav-badge.admin { background: rgba(245,197,24,0.15); border-color: rgba(245,197,24,0.4); color: #f5c518; }
+.nav-username { font-size: 0.85rem; color: var(--muted); }
+.btn-logout { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
+.btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+#screen-admin { padding-bottom: 40px; }
+.content { width: 100%; max-width: 1000px; padding: 24px 20px; }
+.admin-tabs { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+.tab-btn { padding: 9px 18px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; }
+.tab-btn.active { background: rgba(108,99,255,0.15); border-color: var(--accent); color: var(--text); }
+.tab-btn:hover:not(.active) { border-color: var(--muted); color: var(--text); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+.stat-label { font-size: 0.72rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.stat-value { font-family: 'Nunito', sans-serif; font-size: 1.8rem; font-weight: 900; color: var(--text); }
+.stat-sub { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+.table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.table-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.95rem; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 12px 16px; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); font-weight: 700; }
+td { padding: 12px 16px; font-size: 0.85rem; border-bottom: 1px solid rgba(42,42,56,0.5); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.badge-role { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; font-family: 'Nunito', sans-serif; }
+.badge-role.admin { background: rgba(245,197,24,0.15); color: #f5c518; }
+.badge-role.user { background: rgba(108,99,255,0.15); color: #a89eff; }
+.badge-status { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; font-family: 'Nunito', sans-serif; }
+.badge-status.activo { background: rgba(34,197,94,0.15); color: #22c55e; }
+.badge-status.inactivo { background: rgba(255,77,77,0.12); color: #ff7070; }
+.badge-status::before { content: '●'; font-size: 0.5rem; }
+.btn-sm { padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.75rem; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; margin-right: 4px; }
+.btn-sm:hover { border-color: var(--accent); color: var(--text); }
+.btn-sm.danger:hover { border-color: var(--danger); color: var(--danger); }
+.section-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+.section-card-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.95rem; margin-bottom: 18px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+.form-group input, .form-group select { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.88rem; outline: none; transition: border-color 0.2s; }
+.form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+.form-group select option { background: #1a1a22; }
+.btn-primary { padding: 11px 22px; border-radius: 12px; border: none; background: linear-gradient(135deg, var(--accent), var(--guayaquil-pink)); color: white; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.88rem; cursor: pointer; transition: opacity 0.2s; margin-top: 16px; }
+.btn-primary:hover { opacity: 0.88; }
+.form-msg { font-size: 0.8rem; margin-top: 10px; min-height: 20px; font-weight: 600; }
+.form-msg.ok { color: var(--success); }
+.form-msg.err { color: var(--danger); }
+#screen-app { padding-bottom: 40px; }
+#screen-app .content { max-width: 940px; }
+.app-header { margin-bottom: 20px; }
+.app-header h1 { font-family: 'Nunito', sans-serif; font-size: 1.4rem; font-weight: 900; background: linear-gradient(135deg, #f5c518, #e8106a, #6c63ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 3px; }
+.app-header p { color: var(--muted); font-size: 0.82rem; }
+.app-wrapper { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+.form-panel { flex: 1 1 340px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px; }
+.section-title { font-family: 'Nunito', sans-serif; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; margin-top: 20px; }
+.section-title:first-child { margin-top: 0; }
+.bank-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+.bank-btn { flex: 1; padding: 12px 8px; border-radius: 12px; border: 2px solid var(--border); background: transparent; cursor: pointer; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.8rem; color: var(--muted); transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bank-btn .logo-sq { font-size: 1.4rem; }
+.bank-btn.active-pichincha { border-color: var(--pichincha-yellow); color: var(--pichincha-yellow); background: rgba(245,197,24,0.08); }
+.bank-btn.active-guayaquil { border-color: var(--guayaquil-pink); color: var(--guayaquil-pink); background: rgba(232,16,106,0.08); }
+label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+input[type=text], input[type=number], input[type=date], input[type=time], select { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.88rem; margin-bottom: 12px; outline: none; transition: border-color 0.2s; }
+input:focus, select:focus { border-color: var(--accent); }
+select option { background: #1a1a22; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tipo-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.tipo-btn { padding: 8px 4px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.75rem; font-family: 'Nunito', sans-serif; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; }
+.tipo-btn.active { border-color: var(--accent); color: var(--text); background: rgba(108,99,255,0.15); }
+.btn-generate { width: 100%; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(135deg, var(--accent), #e8106a); color: white; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem; cursor: pointer; margin-top: 8px; transition: opacity 0.2s, transform 0.1s; }
+.btn-generate:hover { opacity: 0.9; }
+.btn-generate:active { transform: scale(0.98); }
+.preview-panel { flex: 1 1 300px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.preview-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; align-self: flex-start; }
+#comprobante-wrapper { width: 100%; max-width: 340px; }
+.btns-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn-download { padding: 11px 22px; border-radius: 12px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.88rem; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+.btn-png { background: rgba(108,99,255,0.15); border: 1px solid rgba(108,99,255,0.4); color: #a89eff; }
+.btn-png:hover { background: rgba(108,99,255,0.25); }
+.comp-pichincha { background: white; border-radius: 18px; overflow: hidden; width: 100%; font-family: 'DM Sans', sans-serif; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.comp-pichincha .cp-header { background: white; padding: 20px 20px 10px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #f0f0f0; }
+.cp-bank-logo { display: flex; align-items: center; gap: 8px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1rem; color: #1a2040; }
+.cp-bank-logo .logo-icon { width: 28px; height: 28px; background: #f5c518; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 900; color: #1a2040; }
+.cp-watermark-area { position: relative; overflow: hidden; padding: 20px; }
+.cp-watermark-text { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; opacity: 0.07; pointer-events: none; overflow: hidden; align-content: flex-start; }
+.cp-watermark-text span { font-size: 0.6rem; font-weight: 700; color: #1a2040; white-space: nowrap; letter-spacing: 0.05em; }
+.cp-status { display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; z-index: 1; }
+.cp-check-circle { width: 44px; height: 44px; border-radius: 50%; background: #22c55e; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; box-shadow: 0 0 0 8px rgba(34,197,94,0.15); }
+.cp-check-circle svg { width: 22px; height: 22px; }
+.cp-status-text { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.1rem; color: #3a3a3a; }
+.cp-comprobante-num { font-size: 0.75rem; color: #888; }
+.cp-delay-box { background: #e8f0fe; border-radius: 10px; padding: 10px 14px; display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; position: relative; z-index: 1; }
+.cp-delay-icon { color: #1a73e8; font-size: 1rem; margin-top: 1px; }
+.cp-delay-text { font-size: 0.78rem; color: #1a2040; line-height: 1.4; }
+.cp-body { padding: 0 20px 20px; }
+.cp-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid #f4f4f4; gap: 12px; }
+.cp-row:last-child { border-bottom: none; }
+.cp-key { font-size: 0.8rem; color: #777; white-space: nowrap; }
+.cp-val { font-size: 0.85rem; color: #4a4a4a; font-weight: 500; text-align: right; word-break: break-all; }
+.cp-section-header { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.85rem; color: #3a3a3a; padding: 12px 0 4px; border-top: 2px solid #f0f0f0; margin-top: 4px; }
+.cp-key-bold { font-size: 0.85rem !important; font-weight: 700 !important; color: #3a3a3a !important; }
+.cp-val-bold { font-size: 0.9rem !important; font-weight: 700 !important; color: #3a3a3a !important; }
+.cp-row-last { border-bottom: none !important; }
+.comp-guayaquil { background: #f7f7f7; border-radius: 18px; overflow: hidden; width: 100%; font-family: 'DM Sans', sans-serif; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.cg-header { background: white; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; }
+.cg-bank-logo { display: flex; align-items: center; gap: 10px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 0.95rem; color: #e8106a; line-height: 1.2; }
+.cg-logo-svg { width: 36px; height: 36px; flex-shrink: 0; }
+.cg-num { font-size: 0.75rem; color: #888; }
+.cg-hero { background: linear-gradient(135deg, #e8106a, #ff4d9e); padding: 22px 20px; text-align: center; position: relative; overflow: hidden; }
+.cg-hero::before { content: ''; position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.1); }
+.cg-amount { font-family: 'Nunito', sans-serif; font-size: 2rem; font-weight: 900; color: white; }
+.cg-tipo { font-size: 0.75rem; color: rgba(255,255,255,0.85); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
+.cg-fecha { font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-top: 6px; }
+.cg-instant-badge { display: inline-flex; align-items: center; gap: 4px; background: white; padding: 8px 14px; border-radius: 20px; margin: 14px 0 0; font-size: 0.78rem; color: #333; font-weight: 600; }
+.cg-body { background: white; margin: 12px; border-radius: 14px; overflow: hidden; }
+.cg-flow { padding: 16px 16px 8px; }
+.cg-node { display: flex; align-items: flex-start; gap: 12px; padding: 6px 0; }
+.cg-dot-wrap { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; padding-top: 3px; }
+.cg-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.cg-dot.gray { background: #bbb; }
+.cg-dot.green { background: #22c55e; }
+.cg-line { width: 2px; height: 28px; background: #e0e0e0; margin-top: 3px; }
+.cg-node-name { font-weight: 700; font-size: 0.85rem; color: #1a1a2e; }
+.cg-node-acc { font-size: 0.75rem; color: #888; }
+.cg-fees { padding: 12px 16px 16px; border-top: 1px solid #f0f0f0; }
+.cg-fee-row { display: flex; justify-content: space-between; padding: 5px 0; }
+.cg-fee-key { font-size: 0.8rem; color: #888; }
+.cg-fee-val { font-size: 0.85rem; color: #1a2040; font-weight: 600; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px; width: 90%; max-width: 420px; }
+.modal-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem; margin-bottom: 18px; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.btn-cancel { padding: 9px 18px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; }
+.modal .form-group { margin-bottom: 14px; }
+.modal .form-group input, .modal .form-group select { margin-bottom: 0; }
+@media (max-width: 600px) {
+  .app-wrapper { flex-direction: column; }
+  .form-panel, .preview-panel { flex: none; width: 100%; }
+  .form-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  table { font-size: 0.78rem; }
+  th, td { padding: 10px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">🏦</div>
+    <div class="login-title">Comprobantes EC</div>
+    <p class="login-subtitle">Ingresa tu usuario y PIN para continuar</p>
+    <div class="login-field">
+      <label>Usuario</label>
+      <input type="text" id="login-user" placeholder="tu_usuario" autocomplete="off" oninput="resetLoginError()">
+    </div>
+    <p class="pin-label">PIN de 6 dígitos</p>
+    <div class="pin-display" id="pin-display">
+      <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
+      <div class="pin-dot" id="dot-4"></div><div class="pin-dot" id="dot-5"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinKey('1')">1</button><button class="pin-key" onclick="pinKey('2')">2</button><button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button><button class="pin-key" onclick="pinKey('5')">5</button><button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button><button class="pin-key" onclick="pinKey('8')">8</button><button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key del" onclick="pinDel()">⌫ Borrar</button><button class="pin-key" onclick="pinKey('0')">0</button><button class="pin-key enter" onclick="doLogin()">✓</button>
+    </div>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="screen-admin" class="screen">
+  <nav class="navbar">
+    <div class="nav-brand">🏦 Comprobantes EC</div>
+    <div class="nav-user">
+      <span class="nav-badge admin">Admin</span>
+      <span class="nav-username" id="admin-username"></span>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </nav>
+  <div class="content">
+    <div class="admin-tabs">
+      <button class="tab-btn active" onclick="showTab('tab-stats',this)">📊 Estadísticas</button>
+      <button class="tab-btn" onclick="showTab('tab-usuarios',this)">👥 Usuarios</button>
+      <button class="tab-btn" onclick="showTab('tab-crear',this)">➕ Crear usuario</button>
+    </div>
+    <div class="tab-panel active" id="tab-stats">
+      <div class="stats-grid" id="stats-grid"></div>
+    </div>
+    <div class="tab-panel" id="tab-usuarios">
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">Todos los usuarios</span></div>
+        <table>
+          <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-crear">
+      <div class="section-card">
+        <div class="section-card-title">➕ Crear nuevo usuario</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nombre completo</label><input type="text" id="new-nombre" placeholder="Juan Pérez"></div>
+          <div class="form-group"><label>Usuario (login)</label><input type="text" id="new-user" placeholder="juan.perez" autocomplete="off"></div>
+          <div class="form-group"><label>PIN (6 dígitos)</label><input type="password" id="new-pin" placeholder="••••••" maxlength="6" autocomplete="off"></div>
+          <div class="form-group"><label>Rol</label><select id="new-rol"><option value="user">Usuario</option><option value="admin">Administrador</option></select></div>
+        </div>
+        <button class="btn-primary" onclick="crearUsuario()">✅ Crear usuario</button>
+        <div class="form-msg" id="crear-msg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP USUARIO -->
+<div id="screen-app" class="screen">
+  <nav class="navbar">
+    <div class="nav-brand">🏦 Comprobantes EC</div>
+    <div class="nav-user">
+      <span class="nav-badge">Usuario</span>
+      <span class="nav-username" id="app-username"></span>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </nav>
+  <div class="content">
+    <div class="app-header">
+      <h1>Generador de Comprobantes</h1>
+      <p>Crea comprobantes bancarios en tiempo real · Ecuador</p>
+    </div>
+    <div class="app-wrapper">
+      <div class="form-panel">
+        <div class="section-title">Banco</div>
+        <div class="bank-selector">
+          <button class="bank-btn active-pichincha" id="btn-pichincha" onclick="selectBank('pichincha')"><span class="logo-sq">🟨</span>Pichincha</button>
+          <button class="bank-btn" id="btn-guayaquil" onclick="selectBank('guayaquil')"><span class="logo-sq">🩷</span>Guayaquil</button>
+        </div>
+        <div class="section-title">Tipo de operación</div>
+        <div class="tipo-row">
+          <button class="tipo-btn active" id="tipo-transferencia" onclick="selectTipo('transferencia')">Transferencia</button>
+          <button class="tipo-btn" id="tipo-pago" onclick="selectTipo('pago')">Pago Tarjeta</button>
+          <button class="tipo-btn" id="tipo-interna" onclick="selectTipo('interna')">Interna</button>
+        </div>
+        <div class="section-title">Datos del comprobante</div>
+        <div class="row-2">
+          <div><label>Monto ($)</label><input type="number" id="monto" placeholder="0.00" value="500.00" step="0.01" oninput="updatePreview()"></div>
+          <div><label>N° Comprobante</label><input type="text" id="comprobante" placeholder="42607749" oninput="updatePreview()"></div>
+        </div>
+        <div class="row-2">
+          <div><label>Fecha</label><input type="date" id="fecha" oninput="updatePreview()"></div>
+          <div><label>Hora</label><input type="time" id="hora" oninput="updatePreview()"></div>
+        </div>
+        <label>Comisión ($)</label>
+        <input type="number" id="comision" placeholder="0.00" value="0.00" step="0.01" oninput="updatePreview()">
+        <div id="iva-wrap" style="display:none"><label>IVA ($)</label><input type="number" id="iva" placeholder="0.00" value="0.00" step="0.01" oninput="updatePreview()"></div>
+        <div class="section-title">Cuenta origen</div>
+        <label>Nombre titular</label><input type="text" id="origen-nombre" placeholder="Juan Pérez García" oninput="updatePreview()">
+        <label>N° de cuenta / tarjeta</label><input type="text" id="origen-cuenta" placeholder="******4978" oninput="updatePreview()">
+        <div class="section-title">Cuenta destino</div>
+        <label>Nombre destinatario</label><input type="text" id="destino-nombre" placeholder="María López Ruiz" oninput="updatePreview()">
+        <label>N° de cuenta / tarjeta</label><input type="text" id="destino-cuenta" placeholder="******9722" oninput="updatePreview()">
+        <label>Banco destino</label><input type="text" id="destino-banco" placeholder="Banco Pichincha" oninput="updatePreview()">
+        <div id="destino-email-wrap">
+          <label>Correo electrónico destino</label><input type="text" id="destino-email" placeholder="No registrado" oninput="updatePreview()">
+        </div>
+        <button class="btn-generate" onclick="updatePreview()">⚡ Actualizar comprobante</button>
+      </div>
+      <div class="preview-panel">
+        <div class="preview-label">Vista previa</div>
+        <div id="comprobante-wrapper"></div>
+        <div class="btns-row">
+          <button class="btn-download btn-png" onclick="downloadPNG()">📸 Descargar PNG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal">
+    <div class="modal-title">✏️ Editar usuario</div>
+    <input type="hidden" id="edit-user-id">
+    <div class="form-group"><label>Nombre completo</label><input type="text" id="edit-nombre"></div>
+    <div class="form-group"><label>Nuevo PIN (dejar vacío para no cambiar)</label><input type="password" id="edit-pin" placeholder="••••••" maxlength="6" autocomplete="off"></div>
+    <div class="form-group"><label>Estado</label><select id="edit-estado"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
+    <div class="form-msg" id="edit-msg"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" style="margin-top:0" onclick="guardarEdicion()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+let currentBank = 'pichincha';
+let currentTipo = 'transferencia';
+let pinBuffer = '';
+
+// ============ LOGIN ============
+function pinKey(n) {
+  if (pinBuffer.length >= 6) return;
+  pinBuffer += n; updatePinDisplay();
+  if (pinBuffer.length === 6) setTimeout(doLogin, 150);
+}
+function pinDel() { pinBuffer = pinBuffer.slice(0,-1); updatePinDisplay(); }
+function updatePinDisplay() {
+  for (let i=0;i<6;i++) document.getElementById('dot-'+i).classList.toggle('filled', i < pinBuffer.length);
+}
+function resetLoginError() { document.getElementById('login-error').textContent=''; }
+
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const pin = pinBuffer;
+  document.getElementById('login-error').textContent = '';
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username, pin})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      currentUser = data.user;
+      pinBuffer=''; updatePinDisplay();
+      document.getElementById('login-user').value='';
+      if (currentUser.rol==='admin') {
+        showScreen('screen-admin');
+        document.getElementById('admin-username').textContent = currentUser.nombre;
+        renderAdmin();
+      } else {
+        showScreen('screen-app');
+        document.getElementById('app-username').textContent = currentUser.nombre;
+        initApp();
+      }
+    } else {
+      document.getElementById('login-error').textContent = '❌ ' + data.error;
+      pinBuffer=''; updatePinDisplay();
+    }
+  } catch(e) {
+    document.getElementById('login-error').textContent = '❌ Error de conexión';
+    pinBuffer=''; updatePinDisplay();
+  }
+}
+
+function doLogout() { currentUser=null; showScreen('screen-login'); }
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ============ ADMIN ============
+function showTab(tabId, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(tabId==='tab-stats'||tabId==='tab-usuarios') renderAdmin();
+}
+
+async function renderAdmin() {
+  const res = await fetch('/api/usuarios');
+  const users = await res.json();
+  const activos = users.filter(u=>u.estado==='activo').length;
+  const admins = users.filter(u=>u.rol==='admin').length;
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total usuarios</div><div class="stat-value">${users.length}</div><div class="stat-sub">${activos} activos · ${admins} admin</div></div>
+    <div class="stat-card"><div class="stat-label">Usuarios activos</div><div class="stat-value" style="color:var(--success)">${activos}</div><div class="stat-sub">pueden iniciar sesión</div></div>
+    <div class="stat-card"><div class="stat-label">Administradores</div><div class="stat-value" style="color:var(--pichincha-yellow)">${admins}</div><div class="stat-sub">con acceso al panel</div></div>`;
+  document.getElementById('users-tbody').innerHTML = users.map(u => `
+    <tr>
+      <td><code style="color:var(--accent);font-size:0.82rem">@${u.username}</code></td>
+      <td>${u.nombre}</td>
+      <td><span class="badge-role ${u.rol}">${u.rol}</span></td>
+      <td><span class="badge-status ${u.estado}">${u.estado}</span></td>
+      <td>
+        <button class="btn-sm" onclick="openEditModal(${u.id},'${u.nombre}','${u.estado}')">✏️ Editar</button>
+        ${u.username!=='admin'?`<button class="btn-sm danger" onclick="toggleStatus(${u.id})">${u.estado==='activo'?'🔴 Desactivar':'🟢 Activar'}</button>`:''}
+      </td>
+    </tr>`).join('');
+}
+
+async function crearUsuario() {
+  const nombre = document.getElementById('new-nombre').value.trim();
+  const username = document.getElementById('new-user').value.trim();
+  const pin = document.getElementById('new-pin').value.trim();
+  const rol = document.getElementById('new-rol').value;
+  const msg = document.getElementById('crear-msg');
+  const res = await fetch('/api/usuarios', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({nombre, username, pin, rol})
+  });
+  const data = await res.json();
+  if (data.ok) {
+    msg.className='form-msg ok'; msg.textContent=`✅ Usuario @${username} creado correctamente.`;
+    document.getElementById('new-nombre').value='';
+    document.getElementById('new-user').value='';
+    document.getElementById('new-pin').value='';
+    renderAdmin();
+  } else {
+    msg.className='form-msg err'; msg.textContent='❌ '+data.error;
+  }
+}
+
+async function toggleStatus(id) {
+  await fetch(`/api/usuarios/${id}/toggle`, {method:'POST'});
+  renderAdmin();
+}
+
+function openEditModal(id, nombre, estado) {
+  document.getElementById('edit-user-id').value=id;
+  document.getElementById('edit-nombre').value=nombre;
+  document.getElementById('edit-pin').value='';
+  document.getElementById('edit-estado').value=estado;
+  document.getElementById('edit-msg').textContent='';
+  document.getElementById('modal-edit').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-edit').classList.remove('open'); }
+
+async function guardarEdicion() {
+  const id = document.getElementById('edit-user-id').value;
+  const nombre = document.getElementById('edit-nombre').value.trim();
+  const pin = document.getElementById('edit-pin').value.trim();
+  const estado = document.getElementById('edit-estado').value;
+  const msg = document.getElementById('edit-msg');
+  const res = await fetch(`/api/usuarios/${id}`, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({nombre, pin, estado})
+  });
+  const data = await res.json();
+  if (data.ok) {
+    msg.className='form-msg ok'; msg.textContent='✅ Guardado correctamente.';
+    setTimeout(closeModal, 800);
+    renderAdmin();
+  } else {
+    msg.className='form-msg err'; msg.textContent='❌ '+data.error;
+  }
+}
+
+// ============ APP ============
+function initApp() {
+  document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  document.getElementById('hora').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('comprobante').value = generarComprobante();
+  currentBank='pichincha'; currentTipo='transferencia';
+  document.getElementById('btn-pichincha').className='bank-btn active-pichincha';
+  document.getElementById('btn-guayaquil').className='bank-btn';
+  ['transferencia','pago','interna'].forEach(t=>{ document.getElementById('tipo-'+t).className='tipo-btn'+(t==='transferencia'?' active':''); });
+  updatePreview();
+}
+function selectBank(bank) {
+  currentBank=bank;
+  document.getElementById('btn-pichincha').className='bank-btn'+(bank==='pichincha'?' active-pichincha':'');
+  document.getElementById('btn-guayaquil').className='bank-btn'+(bank==='guayaquil'?' active-guayaquil':'');
+  updatePreview();
+}
+function selectTipo(tipo) {
+  currentTipo=tipo;
+  ['transferencia','pago','interna'].forEach(t=>{ document.getElementById('tipo-'+t).className='tipo-btn'+(t===tipo?' active':''); });
+  document.getElementById('iva-wrap').style.display=tipo==='pago'?'block':'none';
+  document.getElementById('destino-email-wrap').style.display=tipo!=='pago'?'block':'none';
+  updatePreview();
+}
+function getData() {
+  const montoRaw=parseFloat(document.getElementById('monto').value)||0;
+  const monto=montoRaw.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const comisionRaw=parseFloat(document.getElementById('comision').value)||0;
+  const comision=comisionRaw.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const valorDebitado=(montoRaw+comisionRaw).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fechaRaw=document.getElementById('fecha').value;
+  let fechaStr=fechaRaw;
+  if(fechaRaw){const d=new Date(fechaRaw+'T00:00:00');const m=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];fechaStr=d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear();}
+  const hora=document.getElementById('hora').value||'00:00';
+  return {
+    monto,comision,valorDebitado,montoRaw,comisionRaw,
+    comprobante:document.getElementById('comprobante').value||generarComprobante(),
+    fecha:fechaStr||'11 Mar 2026',fechaRaw,hora,
+    origenNombre:document.getElementById('origen-nombre').value||'Nombre Origen',
+    origenCuenta:document.getElementById('origen-cuenta').value||'******0000',
+    destinoNombre:document.getElementById('destino-nombre').value||'Nombre Destino',
+    destinoCuenta:document.getElementById('destino-cuenta').value||'******0000',
+    destinoBanco:document.getElementById('destino-banco').value||'Banco Pichincha',
+    destinoEmail:document.getElementById('destino-email').value||'No registrado',
+  };
+}
+function generarComprobante() { return String(Math.floor(Math.random()*90000000)+10000000); }
+function wmark(bank) {
+  const txt=bank==='pichincha'?'BANCO PICHINCHA ':'BANCO GUAYAQUIL ';
+  let s=''; for(let i=0;i<80;i++) s+=`<span>${txt}</span>`;
+  return `<div class="cp-watermark-text">${s}</div>`;
+}
+function buildPichincha(d) {
+  const statusTxt=currentTipo==='pago'?'¡Pago exitoso!':'¡Transferencia enviada!';
+  let delayMsg='';
+  if(currentTipo==='transferencia') delayMsg=`<div class="cp-delay-box"><span class="cp-delay-icon" style="color:#1a73e8;">ℹ</span><span class="cp-delay-text">Esta transacción tardará 20 min.<br>en reflejarse en tus movimientos.</span></div>`;
+  else if(currentTipo==='interna') delayMsg=`<div class="cp-delay-box" style="background:#e8f5e9;"><span class="cp-delay-icon" style="color:#22c55e;">⚡</span><span class="cp-delay-text" style="color:#1a4030;">Tu transferencia llegará de forma inmediata.</span></div>`;
+  let montoSection='';
+  if(currentTipo==='pago'){
+    const ivaVal=parseFloat(document.getElementById('iva')?.value)||0;
+    montoSection=`<div class="cp-row"><span class="cp-key cp-key-bold">Monto</span><span class="cp-val cp-val-bold">$ ${d.monto}</span></div><div class="cp-row"><span class="cp-key">Comisión</span><span class="cp-val">$ ${d.comision}</span></div><div class="cp-row"><span class="cp-key">Iva</span><span class="cp-val">$ ${ivaVal.toFixed(2)}</span></div><div class="cp-row"><span class="cp-key">Fecha</span><span class="cp-val">${d.fecha}</span></div>`;
+  } else {
+    montoSection=`<div class="cp-row"><span class="cp-key cp-key-bold">Monto</span><span class="cp-val cp-val-bold">$ ${d.monto}</span></div><div class="cp-row"><span class="cp-key">Costo de transacción</span><span class="cp-val">$ ${d.comision}</span></div><div class="cp-row"><span class="cp-key">Fecha</span><span class="cp-val">${d.fecha}</span></div>`;
+  }
+  let destinoSection='';
+  if(currentTipo==='pago'){
+    destinoSection=`<div class="cp-section-header">Tarjeta destino</div><div class="cp-row"><span class="cp-key">Nro. de tarjeta</span><span class="cp-val">${d.destinoCuenta}</span></div><div class="cp-row"><span class="cp-key">Banco</span><span class="cp-val">${d.destinoBanco}</span></div><div class="cp-row cp-row-last"><span class="cp-key">Pago Tarjeta</span><span class="cp-val"></span></div>`;
+  } else {
+    destinoSection=`<div class="cp-section-header">Cuenta destino</div><div class="cp-row"><span class="cp-key">Nombre</span><span class="cp-val">${d.destinoNombre}</span></div><div class="cp-row"><span class="cp-key">Número de cuenta</span><span class="cp-val">${d.destinoCuenta}</span></div><div class="cp-row"><span class="cp-key">Banco</span><span class="cp-val">${d.destinoBanco}</span></div><div class="cp-row cp-row-last"><span class="cp-key">Correo electrónico</span><span class="cp-val">${d.destinoEmail}</span></div>`;
+  }
+  return `<div class="comp-pichincha"><div class="cp-header"><div class="cp-bank-logo"><div class="logo-icon"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="#f5c518"/><text x="8" y="12" text-anchor="middle" font-size="8" font-weight="900" fill="#1a2040" font-family="Arial">BP</text></svg></div>BANCO PICHINCHA</div></div><div class="cp-watermark-area">${wmark('pichincha')}<div class="cp-status"><div class="cp-check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="cp-status-text">${statusTxt}</div><div class="cp-comprobante-num">Comprobante: ${d.comprobante}</div>${delayMsg}</div></div><div class="cp-body">${montoSection}<div class="cp-section-header">Cuenta origen</div><div class="cp-row"><span class="cp-key">Nombre</span><span class="cp-val">${d.origenNombre}</span></div><div class="cp-row"><span class="cp-key">Número de cuenta</span><span class="cp-val">${d.origenCuenta}</span></div>${destinoSection}</div></div>`;
+}
+function buildGuayaquil(d) {
+  const isInstant=(currentTipo==='interna'||currentTipo==='transferencia');
+  const badgeText=isInstant?'⚡ Tu transferencia llegará de forma inmediata':'ℹ️ Esta transacción puede tardar hasta 20 min.';
+  const fechaGuayaquil=d.fechaRaw?(()=>{const dd=new Date(d.fechaRaw+'T00:00:00');const p=n=>String(n).padStart(2,'0');return`${p(dd.getDate())}/${p(dd.getMonth()+1)}/${dd.getFullYear()} ${d.hora}:00`;})():`11/03/2026 ${d.hora}:00`;
+  const tipoTexto=currentTipo==='interna'?'TRANSFERENCIA INTERNA OTRAS CTAS':currentTipo==='pago'?'PAGO TARJETA':'TRANSFERENCIA ENVIADA';
+  const origenTipo=currentTipo==='pago'?'Cuenta':'Ahorros';
+  const destinoTipo=currentTipo==='pago'?'Corriente':'Banco Guayaquil Corriente';
+  return `<div class="comp-guayaquil"><div class="cg-header"><div class="cg-bank-logo"><svg class="cg-logo-svg" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" stroke="#e8106a" stroke-width="3.5"/><circle cx="20" cy="20" r="10" stroke="#e8106a" stroke-width="3.5"/></svg><div>Banco<br>Guayaquil</div></div><div class="cg-num">No.${d.comprobante}</div></div><div class="cg-hero"><div class="cg-amount">$${d.monto}</div><div class="cg-tipo">${tipoTexto}</div><div class="cg-fecha">${fechaGuayaquil}</div><div class="cg-instant-badge">${badgeText}</div></div><div class="cg-body"><div class="cg-flow"><div class="cg-node"><div class="cg-dot-wrap"><div class="cg-dot gray"></div><div class="cg-line"></div></div><div><div class="cg-node-name">${d.origenNombre}</div><div class="cg-node-acc">${origenTipo} - ${d.origenCuenta}</div></div></div><div class="cg-node"><div class="cg-dot-wrap"><div class="cg-dot green"></div></div><div><div class="cg-node-name">${d.destinoNombre}</div><div class="cg-node-acc">${d.destinoBanco} ${destinoTipo} - ${d.destinoCuenta}</div></div></div></div><div class="cg-fees"><div class="cg-fee-row"><span class="cg-fee-key">Comisión</span><span class="cg-fee-val">$${d.comision}</span></div><div class="cg-fee-row"><span class="cg-fee-key">Valor debitado</span><span class="cg-fee-val">$${d.valorDebitado}</span></div></div></div></div>`;
+}
+function updatePreview() {
+  const d=getData();
+  document.getElementById('comprobante-wrapper').innerHTML=currentBank==='pichincha'?buildPichincha(d):buildGuayaquil(d);
+}
+async function downloadPNG() {
+  const el=document.getElementById('comprobante-wrapper').firstElementChild;
+  if(!el) return;
+  const canvas=await html2canvas(el,{scale:3,backgroundColor:null,useCORS:true});
+  const link=document.createElement('a');
+  link.download=`comprobante_${currentBank}_${Date.now()}.png`;
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>
