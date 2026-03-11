@@ -2,12 +2,14 @@ from flask import Flask, request, jsonify, send_from_directory
 import psycopg2
 import psycopg2.extras
 import os
-import hashlib
 
 app = Flask(__name__, static_folder='static')
 
 def get_db():
-    return psycopg2.connect(os.environ['DATABASE_URL'], sslmode='require')
+    url = os.environ['DATABASE_URL']
+    if url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql://', 1)
+    return psycopg2.connect(url, sslmode='require')
 
 def init_db():
     conn = get_db()
