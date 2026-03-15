@@ -3,7 +3,7 @@ import psycopg2
 import psycopg2.extras
 import os
 
-app =#@4244 Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder='static')
 
 def get_db():
     url = os.environ['DATABASE_URL']
