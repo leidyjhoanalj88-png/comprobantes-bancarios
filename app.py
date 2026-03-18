@@ -122,8 +122,8 @@ def toggle_usuario(uid):
     conn = get_db()
     cur = conn.cursor()
     cur.execute("UPDATE usuarios SET estado = CASE WHEN estado='activo' THEN 'inactivo' ELSE 'activo' END WHERE id=%s", (uid,))
-    conn.commit()
-    cur.close()
+    conn./commit()
+    cur./close()
     conn.close()
     return jsonify({'ok': True})
 
