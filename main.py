@@ -4,7 +4,7 @@ from app import app
 
 def run_bot():
     print("🤖 Bot activo")
-    bot.infinity_polling(none_stop=True)
+    bot.infinity_polling(skip_pending=True)
 
 def run_web():
     print("🌐 Web activa")
