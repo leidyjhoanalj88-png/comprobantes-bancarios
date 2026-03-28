@@ -6,8 +6,8 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# --- CONFIGURACIÓN (NO SE TOCA) ---
-TOKEN = "8761804922:AAFz2AebtHNgYQgbNVZfAz179jUzydrSbXk"
+# --- CONFIGURACIÓN (ACTUALIZADA) ---
+TOKEN = "8761804922:AAFSHTi1qk7XPoS-kn1Zncf7Y8o8gNpAbnM"
 MI_ID = "8114050673"
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
@@ -23,12 +23,12 @@ def autorizado(user_id):
     return user_id in usuarios_autorizados
 
 # ==============================
-# 🔥 DEBUG (IMPORTANTE)
+# 🔥 DEBUG
 # ==============================
 
 @bot.message_handler(func=lambda m: True)
 def debug_all(msg):
-    print("📩 MENSAJE RECIBIDO:", msg.text)
+    print("📩 MENSAJE:", msg.text)
 
 # ==============================
 # 🔥 COMANDOS
@@ -165,15 +165,12 @@ def enviar():
         return jsonify({"status": "error", "msg": str(e)}), 500
 
 # ==============================
-# 🤖 INICIO (ARREGLADO)
+# 🤖 INICIO
 # ==============================
 
 def iniciar_bot():
     print("🤖 Bot corriendo...")
-    try:
-        bot.infinity_polling(none_stop=True, interval=0, timeout=20)
-    except Exception as e:
-        print("❌ ERROR BOT:", e)
+    bot.infinity_polling(none_stop=True)
 
 if __name__ == '__main__':
     print("🔥 Iniciando sistema...")
@@ -183,4 +180,4 @@ if __name__ == '__main__':
     hilo.start()
 
     print("🌐 Flask corriendo...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
