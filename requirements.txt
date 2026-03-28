@@ -1,5 +1,2 @@
-
-Flask
+flask
 pyTelegramBotAPI
-requests
-gunicorn
