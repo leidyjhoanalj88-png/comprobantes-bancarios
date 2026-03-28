@@ -3,13 +3,10 @@ from bot import bot
 from app import app
 
 def run_bot():
-    print("🤖 Bot activo")
     bot.infinity_polling(skip_pending=True)
 
-def run_web():
-    print("🌐 Web activa")
-    app.run(host="0.0.0.0", port=5000)
+# 👇 IMPORTANTE
+threading.Thread(target=run_bot).start()
 
-if __name__ == "__main__":
-    threading.Thread(target=run_bot).start()
-    run_web()
+# 👇 esto lo usa gunicorn
+application = app
