@@ -5,7 +5,7 @@ import telebot
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN ---
-TOKEN = "8605174246:AAGdyqFbKp6ND3fyCQwvcXvKN2zyT4yywOw"
+TOKEN = "8761804922:AAFz2AebtHNgYQgbNVZfAz179jUzydrSbXk";
 MI_ID = "8114050673"
 bot = telebot.TeleBot(TOKEN)
 
