@@ -1,5 +1,8 @@
 import telebot
+import logging
 from config import TOKEN, MI_ID
+
+telebot.logger.setLevel(logging.DEBUG)
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
@@ -71,7 +74,7 @@ def users(msg):
         bot.reply_to(msg, "\n".join(map(str, usuarios_autorizados)))
 
 # =====================
-# DEBUG IMPORTANTE
+# DEBUG
 # =====================
 
 @bot.message_handler(func=lambda m: True)
