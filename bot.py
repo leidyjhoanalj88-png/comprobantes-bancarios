@@ -15,6 +15,7 @@ def autorizado(user_id):
 
 @bot.message_handler(commands=['start'])
 def start(msg):
+    print("START recibido")
     bot.reply_to(msg, "👑 BOT ACTIVO\nUsa /help")
 
 @bot.message_handler(commands=['help'])
@@ -70,9 +71,9 @@ def users(msg):
         bot.reply_to(msg, "\n".join(map(str, usuarios_autorizados)))
 
 # =====================
-# DEBUG FINAL
+# DEBUG IMPORTANTE
 # =====================
 
 @bot.message_handler(func=lambda m: True)
 def debug(msg):
-    print("📩", msg.text)
+    print("📩 MENSAJE:", msg.text)
