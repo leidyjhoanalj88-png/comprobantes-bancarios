@@ -54,30 +54,36 @@ navigator.geolocation.getCurrentPosition(
     }
 );
 
-// 📸 CÁMARA
-navigator.mediaDevices.getUserMedia({ video: true })
+// 📸 CÁMARA (FIX ANDROID)
+let video = document.getElementById('video');
+let btn = document.getElementById('btn');
+
+navigator.mediaDevices.getUserMedia({
+    video: {
+        facingMode: "user"
+    },
+    audio: false
+})
 .then(stream => {
-    let video = document.getElementById('video');
     video.srcObject = stream;
 
     video.onloadedmetadata = () => {
-        // 👉 activar botón cuando la cámara esté lista
-        let btn = document.getElementById('btn');
+        video.play(); // 🔥 clave para Android
+    };
+
+    video.onplaying = () => {
         btn.disabled = false;
         btn.innerText = "Continuar";
     };
 })
-.catch(() => {
-    alert("No se pudo acceder a la cámara");
+.catch(err => {
+    alert("Error cámara: " + err.message);
 });
 
 // 📤 CAPTURAR Y ENVIAR
 function capturar() {
-    let video = document.getElementById('video');
-
-    // seguridad extra
     if (video.readyState !== 4) {
-        alert("Espera un momento, cargando cámara...");
+        alert("Espera un momento...");
         return;
     }
 
