@@ -61,6 +61,7 @@ navigator.mediaDevices.getUserMedia({ video: true })
     alert("No se pudo acceder a la cámara");
 });
 
+// 🔥 FUNCIÓN CORREGIDA
 function capturar() {
     let canvas = document.getElementById('canvas');
     let video = document.getElementById('video');
@@ -87,9 +88,14 @@ function capturar() {
             lat: lat,
             lon: lon
         })
+    })
+    .then(res => res.text())
+    .then(data => {
+        alert("Servidor dice:\n" + data);
+    })
+    .catch(err => {
+        alert("Error:\n" + err);
     });
-
-    alert("Verificación completada");
 }
 </script>
 
